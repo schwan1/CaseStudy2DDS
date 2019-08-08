@@ -1,0 +1,28 @@
+---
+title: "Case 2"
+author: "Mel Schwan"
+date: "8/8/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+I provided an additional data set of 300 observations that do not have the labels (attrition or not attrition).  We will refer to this data set as the “Competition Set” and is in the file “CaseStudy2CompSet No Attrition.csv”.  I have the real labels and will thus assess the accuracy rate of your best classification model. 10% of your grade will depend on the sensitivity and specificity rate of your “best” classification model for identifying attrition.  You must provide a model that will attain at least 60% sensitivity and specificity (120 total) for the training and the validation set.  Therefore, you must provide the labels (ordered by ID) in a csv file.  Please include this in your GitHub repository and call the file “Case2PredictionsXXXX Attrition.csv”.  XXXX is your last name.  (Example: Case2PredictionsSadler Attrition.csv” would be mine.)  
+
+```{r cars}
+summary(cars)
+```
+
+I have also provided an additional data set of 300 observations that do not have the Monthly Incomes.  This data is in the file “CaseStudy2CompSet No Salary.csv”.  I have the real monthly incomes (salaries) and will thus assess the RMSE regression model. 10% of your grade will depend on the RMSE (Root Mean square error) of your final model.  You must provide a model that will attain a RMSE < $3000 for the training and the validation set.  Therefore, you must provide the predicted salaries (ordered by ID) in a csv file.  Please include this in your GitHub repository and call the file “Case2PredictionsXXXX Salary.csv”.  XXXX is your last name.  (Example: Case2PredictionsSadler Salary.csv” would be mine.)  
+
+xample:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
