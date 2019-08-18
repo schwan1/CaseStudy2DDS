@@ -9,20 +9,274 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+
+## Case Study II: Using Data Science to Define Data Science
+## Due Date: August 17, 2019
+
+You have been given a dataset (CaseStudy2-data.csv) to do a data analysis to identify factors that lead to attrition.  You should identify the top three factors that contribute to turnover. There may or may not be a need to create derived attributes/variables/features. The business is also interested in learning about any job role specific trends that may exist in the data set (e.g., “Data Scientists have the highest job satisfaction”). You can also provide any other interesting trends and observations from your analysis.
+
+
+
+The purpose of this case study is to use R to explore different on-line job postings for different positions in ''data science''. The assumption is that we can use the job descriptions that employers post for data scientists to define what a data scientist does (and thereby arrive at a definition of data science as a discipline).
+
+### Deliverable
+In using data science to define data science, we need to keep in mind reproducibility. To this end, your project markdown code should be committed and pushed to GitHub. The deliverable is a link to the GitHub repository where the markdown code resides. 
 
 I provided an additional data set of 300 observations that do not have the labels (attrition or not attrition).  We will refer to this data set as the “Competition Set” and is in the file “CaseStudy2CompSet No Attrition.csv”.  I have the real labels and will thus assess the accuracy rate of your best classification model. 10% of your grade will depend on the sensitivity and specificity rate of your “best” classification model for identifying attrition.  You must provide a model that will attain at least 60% sensitivity and specificity (120 total) for the training and the validation set.  Therefore, you must provide the labels (ordered by ID) in a csv file.  Please include this in your GitHub repository and call the file “Case2PredictionsXXXX Attrition.csv”.  XXXX is your last name.  (Example: Case2PredictionsSadler Attrition.csv” would be mine.)  
-
-```{r cars}
-summary(cars)
+```{r Libraryv, echo=FALSE}
+library(caret)
+# library(caTools)
+# library(FNN)
+# library(fastNaiveBayes)
+library(tidyverse)
+# library(doParallel)
+# library(foreach)
+# library(functional)
+library(ROCR)
+library(pROC)
+# library(tm)
+# library(mlr)
+# library(fpp2)
+library(dplyr)
+library(ggplot2)
+library(tibble)
+library(readxl)
+# library(mlbench)
+# library(mlr)
+library(tidyverse)
+library(ggthemes)
+library(gplots)
+library(skimr)
+library(plyr)
+library(corrplot)
+# library(rpart)
+# library(rpart.plot)
+# library(e1071)
+# library(rattle)
+library(gridExtra)
+# library(reshape2)
+# library(RColorBrewer)
+library(magrittr)
+library(MASS)
 ```
+
+#Load the supplied datasets and evaluate
+
+```{r Casestudy2_data, echo=TRUE}
+
+employee_df<-read.csv("./WA_Fn-UseC_-HR-Employee-Attrition.csv")
+dim(employee_df)
+car::some(employee_df)
+#Make a copy of employee_df for Modeling
+retention_set = employee_df
+skim(retention_set)
+#Change attrition to numeric
+
+comp_set<-read_csv("./CaseStudy2CompSet No Attrition.csv")
+comp_set_study<-read_csv("./CaseStudy2-data.csv")
+comp_set_nosalary<-read_xlsx("./CaseStudy2CompSet No Salary.xlsx")
+skim(comp_set)
+skim(comp_set_study)
+skim(comp_set_nosalary)
+
+
+
+
+employee_df[, c(2)] <- sapply(employee_df[, c(2)], as.numeric)
+#Look for any empty cells
+sum(is.na(retention_set))
+sum(is.na(comp_set))
+sum(is.na(comp_set_study))
+sum(is.na(comp_set_nosalary))
+```
+
+#Get information on simple data statistics
+
+```{r analysis}
+#Plot some data comparisons
+
+hist(employee_df$Age,main="Distribution of age",xlab="Age",ylab="Count",col=blues9)
+mytable<-with(employee_df,table(Department))
+mytable
+
+
+attri= qplot(Attrition,data = retention_set,geom="auto", xlab = "Number of employees", ylab = "Attrition")
+EducationField= qplot(EducationField,data = retention_set,geom="auto",xlab = "# of education field", ylab = "Education Field")
+gender = qplot(Gender, data=retention_set,geom="auto")
+jobrole = qplot(JobRole, data=retention_set,geom="auto")
+grid.arrange(attri,gender, EducationField, jobrole,nrow=2,ncol=2)
+
+plottable1=table(retention_set$Attrition,retention_set$JobLevel)
+plottable2=table(retention_set$Attrition,retention_set$Education)
+plottable3=table(retention_set$Attrition,retention_set$EnvironmentSatisfaction)
+plottable4=table(retention_set$Attrition,retention_set$JobInvolvement)
+plottable5=table(retention_set$Attrition,retention_set$PercentSalaryHike)
+plottable6=table(retention_set$Attrition,retention_set$PerformanceRating)
+plottable7=table(retention_set$Attrition,retention_set$StockOptionLevel)
+plottable8=table(retention_set$Attrition,retention_set$YearsAtCompany)
+plottable9=table(retention_set$Attrition,retention_set$YearsInCurrentRole)
+
+barplot(plottable1, main="Employees left vs Job Level", xlab="JobLevel",col=c("Blue","Yellow"),legend=rownames(plottable1),beside = TRUE)
+barplot(plottable2, main="Employees left vs Education", xlab="Education",col=c("Blue","Yellow"),legend=rownames(plottable2),beside = TRUE)
+barplot(plottable3, main="Employees left vs Environment Satisfaction", xlab="JobLevel", col=c("Blue","Yellow"),beside = TRUE)
+barplot(plottable4, main="Employees left vs Job Involvement", xlab="Job Involvement", col=c("Blue","Yellow"),legend=rownames(plottable1),beside = TRUE)
+barplot(plottable5, main="Employees left vs salary hike", xlab="salary hike in %", col=c("Blue","Yellow"),legend=rownames(plottable1),beside = TRUE)
+barplot(plottable6, main="Employees left vs Performance Rating", xlab="PerformanceRating",col=c("Blue","Yellow"),legend=rownames(plottable1),beside = TRUE)
+barplot(plottable7, main="Employees left vs stock option level", xlab="Stock Option Level", col=c("Blue","Yellow"),legend=rownames(plottable1),beside = TRUE)
+barplot(plottable8, main="Employees left vs Num of Years at Company", xlab="Num of Years", col=c("Blue","Yellow"),legend=rownames(plottable1),beside = TRUE)
+barplot(plottable9, main="Employees left vs Years in current Role", xlab="Years In Current Role ", col=c("Blue","Yellow"),legend=rownames(plottable1),beside = TRUE)
+
+
+
+```
+
+#Do correlations to analyze impact of independent variables
+
+```{r correlation}
+
+# corrplot::corrplot.mixed(corr=cor(employee_df[,c(1,2,4,6,7,10,11,13:15,17,19,20,21
+# )],use="complete.obs"),upper="pie",tl.pos="lt")
+# 
+# cor((employee_df[,c(1,2,4,6,7,10,11,13:15,17,19,20,21)]))
+# 
+# corrplot::corrplot.mixed(corr=cor(employee_df[,c(24:26,28:35 )],use="complete.obs"),upper="pie",tl.pos="lt")
+# 
+# 
+# 
+# corrplot::corrplot.mixed(corr=cor(employee_df[,c(1,2,4,6,7,10,11,13:15,17,19,20,21
+# )],use="complete.obs"),upper="pie",tl.pos="lt")
+# 
+# cor((employee_df[,c(1,2,4,6,7,10,11,13:15,17,19,20,21)]))
+
+corrplot::corrplot.mixed(corr=cor(employee_df[,c(2,24:26,28:35 )],use="complete.obs"),upper="pie",tl.pos="lt")
+
+
+
+
+
+
+
+
+```
+#Model building and fitting
+```{r model fitting}
+control <- trainControl(method="cv", number=10)
+metric <- "Accuracy"
+
+#Trim down model to attributing features
+varsToKeep <- c('MonthlyIncome','Attrition','JobRole','YearsSinceLastPromotion','YearsInCurrentRole', 'EmployeeNumber')
+
+DstTrainTest <- retention_set[,varsToKeep]
+idxSplit <- createDataPartition(employee_df$Attrition, p = 0.75, list=FALSE)
+DstTrainModel <- DstTrainTest[idxSplit,]
+DstTestModel <- DstTrainTest[-idxSplit,]
+
+trainX <- DstTrainModel[,names(DstTrainModel) != "Attrition"]
+preProcValues <- preProcess(x = trainX,method = c("center", "scale"))
+preProcValues
+
+# kNN
+set.seed(7)
+fit.knn <- train(Attrition ~ ., data=DstTrainModel, method="knn", 
+                 metric=metric, trControl=control, preProcess = c("center","scale"), tuneLength = 5)
+
+# logistic regression
+set.seed(7)
+fit.glm <- train(Attrition ~ ., data=DstTrainModel, method="glm", metric=metric, trControl=control)
+
+```
+#Model accuracy test
+```{r model accuracy}
+
+# summarize accuracy of models
+results <- resamples(list(
+  glm=fit.glm, 
+  knn=fit.knn ))
+#summary(results)
+
+# compare accuracy of models
+dotplot(results)
+
+DstTestModelClean <- DstTestModel
+DstTestModelClean$Attrition <- NA
+predictedval <- predict(fit.knn, newdata=DstTestModelClean)
+# summarize results with confusion matrix
+cm <- confusionMatrix(predictedval, DstTestModel$Attrition)
+
+print('KNN Model Accuracy')
+print(cm$table)
+print(cm$overall)
+print(cm$byClass)
+# calculate accuracy of the model
+Accuracy<-round(cm$overall[1],2)
+print(Accuracy)
+
+
+DstTestModelClean <- DstTestModel
+DstTestModelClean$Attrition <- NA
+predictedval <- predict(fit.glm, newdata=DstTestModelClean)
+# summarize results with confusion matrix
+cm <- confusionMatrix(predictedval, DstTestModel$Attrition)
+print('GLM Model Accuracy')
+print(cm$table)
+print(cm$overall)
+print(cm$byClass)
+# calculate accuracy of the model
+Accuracy<-round(cm$overall[1],2)
+print(Accuracy)
+
+
+```
+#Model testing against new test set
+
+```{r model testing}
+#Put Attrition column in test dataframes
+
+comp_set$Attrition = factor(x=c('No', 'Yes'))
+
+
+varsToKeep <- c('MonthlyIncome','Attrition','JobRole','YearsSinceLastPromotion','YearsInCurrentRole', 'EmployeeNumber')
+
+DstTrainTest <- comp_set[,varsToKeep]
+
+
+
+DstTestModelClean <- DstTrainTest
+DstTestModelClean$Attrition <- NA
+predictedval <- predict(fit.knn, newdata=DstTestModelClean)
+comp_set$Attrition = predictedval
+
+write.csv(comp_set, file = "Case2PedictionsSchwan Attrition.csv")
+
+
+
+
+
+```
+
 
 I have also provided an additional data set of 300 observations that do not have the Monthly Incomes.  This data is in the file “CaseStudy2CompSet No Salary.csv”.  I have the real monthly incomes (salaries) and will thus assess the RMSE regression model. 10% of your grade will depend on the RMSE (Root Mean square error) of your final model.  You must provide a model that will attain a RMSE < $3000 for the training and the validation set.  Therefore, you must provide the predicted salaries (ordered by ID) in a csv file.  Please include this in your GitHub repository and call the file “Case2PredictionsXXXX Salary.csv”.  XXXX is your last name.  (Example: Case2PredictionsSadler Salary.csv” would be mine.)  
 
 xample:
 
 ```{r pressure, echo=FALSE}
-plot(pressure)
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+# #Change all character type to vectors
+# cols <- c("Attrition", "BusinessTravel", "Department", "EducationField", "Gender", "JobRole", "MaritalStatus")
+# retention_set$Attrition %<>% factor
+# retention_set$BusinessTravel %<>% factor
+# retention_set$EducationField %<>% factor
+# retention_set$Gender %<>% factor
+# retention_set$JobRole %<>% factor
+# retention_set$MaritalStatus %<>% factor
+# retention_set$Department %<>% factor
+# retention_set$Over18 %<>% factor
+# retention_set$OverTime %<>% factor
+# temp_df_num = retention_set
+# must_convert<-sapply(temp_df_num,is.factor)       # logical vector telling if a variable needs to be displayed as numeric
+# M2<-sapply(temp_df_num[,must_convert],unclass)    # data.frame of all categorical variables now displayed as numeric
+# out<-cbind(temp_df_num[,!must_convert],M2)        # complete data.frame with all variables put together
+# temp_df_num = out
+# str(retention_set)
