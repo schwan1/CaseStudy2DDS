@@ -1,23 +1,20 @@
-// The package.json is not required to run README-MD-GENERATOR
-{
-  "name": "readme-md-generator",
-  "version": "0.1.3",
-  "description": "CLI that generates beautiful README.md files.",
-  "author": "Franck Abgrall",
-  "license": "MIT",
-  "homepage": "https://github.com/kefranabg/readme-md-generator#readme",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/kefranabg/readme-md-generator.git"
-  },
-  "bugs": {
-    "url": "https://github.com/kefranabg/readme-md-generator/issues"
-  },
-  "engines": {
-    "npm": ">=5.5.0",
-    "node": ">=9.3.0"
-  }
-}
+<h1 align="center">Welcome to DDS Case 2 👋</h1>
+<p>
+  <img alt="Version" src="https://img.shields.io/badge/version-v.0-blue.svg?cacheSeconds=2592000" />
+  <a href="https://github.com/schwan1/CaseStudy2DDS">
+    <img alt="Documentation" src="https://img.shields.io/badge/documentation-yes-brightgreen.svg" target="_blank" />
+  </a>
+</p>
+
+> Analysis of IBM retention data.
+
+### 🏠 [Homepage](https://github.com/schwan1/CaseStudy2DDS)
+
+## Install
+
+```sh
+npm install
+```
 
 ## Author
 
