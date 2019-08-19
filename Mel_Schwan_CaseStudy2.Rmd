@@ -13,51 +13,33 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Case Study II: Using Data Science to Define Data Science
 ## Due Date: August 17, 2019
 
-You have been given a dataset (CaseStudy2-data.csv) to do a data analysis to identify factors that lead to attrition.  You should identify the top three factors that contribute to turnover. There may or may not be a need to create derived attributes/variables/features. The business is also interested in learning about any job role specific trends that may exist in the data set (e.g., “Data Scientists have the highest job satisfaction”). You can also provide any other interesting trends and observations from your analysis.
+DDSAnalytics is an analytics company that specializes in talent management solutions for Fortune 100 companies. Talent management is defined as the iterative process of developing and retaining employees. It may include workforce planning, employee training programs, identifying high-potential employees and reducing/preventing voluntary employee turnover (attrition). To gain a competitive edge over its competition, DDSAnalytics is planning to leverage data science for talent management. The executive leadership has identified predicting employee turnover as its first application of data science for talent management. Before the business green lights the project, they have tasked your data science team to conduct an analysis of existing employee data. 
 
-
-
-The purpose of this case study is to use R to explore different on-line job postings for different positions in ''data science''. The assumption is that we can use the job descriptions that employers post for data scientists to define what a data scientist does (and thereby arrive at a definition of data science as a discipline).
+This is a youtube video presention to the Frito Layes company discussing the data and it's potential. https://youtu.be/RFpn13B5Xn0
 
 ### Deliverable
 In using data science to define data science, we need to keep in mind reproducibility. To this end, your project markdown code should be committed and pushed to GitHub. The deliverable is a link to the GitHub repository where the markdown code resides. 
 
-I provided an additional data set of 300 observations that do not have the labels (attrition or not attrition).  We will refer to this data set as the “Competition Set” and is in the file “CaseStudy2CompSet No Attrition.csv”.  I have the real labels and will thus assess the accuracy rate of your best classification model. 10% of your grade will depend on the sensitivity and specificity rate of your “best” classification model for identifying attrition.  You must provide a model that will attain at least 60% sensitivity and specificity (120 total) for the training and the validation set.  Therefore, you must provide the labels (ordered by ID) in a csv file.  Please include this in your GitHub repository and call the file “Case2PredictionsXXXX Attrition.csv”.  XXXX is your last name.  (Example: Case2PredictionsSadler Attrition.csv” would be mine.)  
+We will provide the predication of the attriction value for each employee in the “CaseStudy2CompSet No Attrition.csv” file. We are to sort the employee numbers and write to my “Case2PredictionsSchwan Attrition.csv”.
 ```{r Libraryv, echo=FALSE}
 library(caret)
-# library(caTools)
-# library(FNN)
-# library(fastNaiveBayes)
 library(tidyverse)
-# library(doParallel)
-# library(foreach)
-# library(functional)
 library(ROCR)
 library(pROC)
-# library(tm)
-# library(mlr)
-# library(fpp2)
 library(dplyr)
 library(ggplot2)
 library(tibble)
 library(readxl)
-# library(mlbench)
-# library(mlr)
 library(tidyverse)
 library(ggthemes)
 library(gplots)
 library(skimr)
 library(plyr)
 library(corrplot)
-# library(rpart)
-# library(rpart.plot)
-# library(e1071)
-# library(rattle)
 library(gridExtra)
-# library(reshape2)
-# library(RColorBrewer)
 library(magrittr)
 library(MASS)
+library(leaps)
 ```
 
 #Load the supplied datasets and evaluate
@@ -78,10 +60,7 @@ comp_set_nosalary<-read_xlsx("./CaseStudy2CompSet No Salary.xlsx")
 skim(comp_set)
 skim(comp_set_study)
 skim(comp_set_nosalary)
-
-
-
-
+#Change Attrition to numeric
 employee_df[, c(2)] <- sapply(employee_df[, c(2)], as.numeric)
 #Look for any empty cells
 sum(is.na(retention_set))
@@ -95,36 +74,23 @@ sum(is.na(comp_set_nosalary))
 ```{r analysis}
 #Plot some data comparisons
 
-hist(employee_df$Age,main="Distribution of age",xlab="Age",ylab="Count",col=blues9)
-mytable<-with(employee_df,table(Department))
-mytable
-
-
-attri= qplot(Attrition,data = retention_set,geom="auto", xlab = "Number of employees", ylab = "Attrition")
-EducationField= qplot(EducationField,data = retention_set,geom="auto",xlab = "# of education field", ylab = "Education Field")
-gender = qplot(Gender, data=retention_set,geom="auto")
-jobrole = qplot(JobRole, data=retention_set,geom="auto")
-grid.arrange(attri,gender, EducationField, jobrole,nrow=2,ncol=2)
-
-plottable1=table(retention_set$Attrition,retention_set$JobLevel)
-plottable2=table(retention_set$Attrition,retention_set$Education)
-plottable3=table(retention_set$Attrition,retention_set$EnvironmentSatisfaction)
+plottable1=table(retention_set$Attrition,retention_set$Age)
+plottable3=table(retention_set$Attrition,retention_set$YearsSinceLastPromotion)
 plottable4=table(retention_set$Attrition,retention_set$JobInvolvement)
 plottable5=table(retention_set$Attrition,retention_set$PercentSalaryHike)
 plottable6=table(retention_set$Attrition,retention_set$PerformanceRating)
-plottable7=table(retention_set$Attrition,retention_set$StockOptionLevel)
+plottable7=table(retention_set$Attrition,retention_set$YearsInCurrentRole)
 plottable8=table(retention_set$Attrition,retention_set$YearsAtCompany)
-plottable9=table(retention_set$Attrition,retention_set$YearsInCurrentRole)
 
-barplot(plottable1, main="Employees left vs Job Level", xlab="JobLevel",col=c("Blue","Yellow"),legend=rownames(plottable1),beside = TRUE)
-barplot(plottable2, main="Employees left vs Education", xlab="Education",col=c("Blue","Yellow"),legend=rownames(plottable2),beside = TRUE)
-barplot(plottable3, main="Employees left vs Environment Satisfaction", xlab="JobLevel", col=c("Blue","Yellow"),beside = TRUE)
+
+barplot(plottable1, main="Employees left vs Age", xlab="Age",col=c("Blue","Yellow"),legend=rownames(plottable1),beside = TRUE)
+barplot(plottable3, main="Employees left vs Years Since Last Promotion", xlab="YearsSinceLastPromotion", col=c("Blue","Yellow"),beside = TRUE)
 barplot(plottable4, main="Employees left vs Job Involvement", xlab="Job Involvement", col=c("Blue","Yellow"),legend=rownames(plottable1),beside = TRUE)
 barplot(plottable5, main="Employees left vs salary hike", xlab="salary hike in %", col=c("Blue","Yellow"),legend=rownames(plottable1),beside = TRUE)
 barplot(plottable6, main="Employees left vs Performance Rating", xlab="PerformanceRating",col=c("Blue","Yellow"),legend=rownames(plottable1),beside = TRUE)
-barplot(plottable7, main="Employees left vs stock option level", xlab="Stock Option Level", col=c("Blue","Yellow"),legend=rownames(plottable1),beside = TRUE)
+barplot(plottable7, main="Employees left vs Years in current Role", xlab="Years In Current Role ", col=c("Blue","Yellow"),legend=rownames(plottable1),beside = TRUE)
 barplot(plottable8, main="Employees left vs Num of Years at Company", xlab="Num of Years", col=c("Blue","Yellow"),legend=rownames(plottable1),beside = TRUE)
-barplot(plottable9, main="Employees left vs Years in current Role", xlab="Years In Current Role ", col=c("Blue","Yellow"),legend=rownames(plottable1),beside = TRUE)
+
 
 
 
@@ -134,43 +100,38 @@ barplot(plottable9, main="Employees left vs Years in current Role", xlab="Years 
 
 ```{r correlation}
 
-# corrplot::corrplot.mixed(corr=cor(employee_df[,c(1,2,4,6,7,10,11,13:15,17,19,20,21
-# )],use="complete.obs"),upper="pie",tl.pos="lt")
-# 
-# cor((employee_df[,c(1,2,4,6,7,10,11,13:15,17,19,20,21)]))
-# 
-# corrplot::corrplot.mixed(corr=cor(employee_df[,c(24:26,28:35 )],use="complete.obs"),upper="pie",tl.pos="lt")
-# 
-# 
-# 
-# corrplot::corrplot.mixed(corr=cor(employee_df[,c(1,2,4,6,7,10,11,13:15,17,19,20,21
-# )],use="complete.obs"),upper="pie",tl.pos="lt")
-# 
-# cor((employee_df[,c(1,2,4,6,7,10,11,13:15,17,19,20,21)]))
+corrplot::corrplot.mixed(corr=cor(employee_df[,c(1,24:26,28:35 )],use="complete.obs"),upper="pie",tl.pos="lt")
 
-corrplot::corrplot.mixed(corr=cor(employee_df[,c(2,24:26,28:35 )],use="complete.obs"),upper="pie",tl.pos="lt")
+#Fit all independent variables to find out which ones are significant
+Model1 <-Attrition ~ Age+BusinessTravel+DailyRate+Department+DistanceFromHome+Education+EducationField+EnvironmentSatisfaction+Gender+JobLevel+JobRole+JobSatisfaction+MaritalStatus+MonthlyIncome+NumCompaniesWorked+OverTime+PercentSalaryHike+JobInvolvement+PerformanceRating+EnvironmentSatisfaction+TotalWorkingYears+TrainingTimesLastYear+WorkLifeBalance+YearsAtCompany+YearsInCurrentRole+YearsSinceLastPromotion+YearsWithCurrManager
 
-
-
-
-
-
+fit1 <- lm(Model1, data = employee_df)
+summary(fit1)
+leap1 <- regsubsets(Model1, data = employee_df, nbest=1)
+plot(leap1, scale="adjr2")
+#Trim done the features to top variables with p value significant 
+Model2 <-Attrition ~ JobLevel+JobRole+TotalWorkingYears
+fit2 <- lm(Model2, data = employee_df)
+summary(fit2)
+leap1 <- regsubsets(Model1, data = employee_df, nbest=1)
+plot(leap1, scale="adjr2")
 
 
 ```
 #Model building and fitting
 ```{r model fitting}
+
 control <- trainControl(method="cv", number=10)
 metric <- "Accuracy"
 
 #Trim down model to attributing features
 varsToKeep <- c('MonthlyIncome','Attrition','JobRole','YearsSinceLastPromotion','YearsInCurrentRole', 'EmployeeNumber')
-
+#Create taining and test datasets
 DstTrainTest <- retention_set[,varsToKeep]
 idxSplit <- createDataPartition(employee_df$Attrition, p = 0.75, list=FALSE)
 DstTrainModel <- DstTrainTest[idxSplit,]
 DstTestModel <- DstTrainTest[-idxSplit,]
-
+#Take attrition out of the model
 trainX <- DstTrainModel[,names(DstTrainModel) != "Attrition"]
 preProcValues <- preProcess(x = trainX,method = c("center", "scale"))
 preProcValues
@@ -185,7 +146,7 @@ set.seed(7)
 fit.glm <- train(Attrition ~ ., data=DstTrainModel, method="glm", metric=metric, trControl=control)
 
 ```
-#Model accuracy test
+#Model accuracy for attrition test
 ```{r model accuracy}
 
 # summarize accuracy of models
@@ -255,28 +216,99 @@ write.csv(comp_set, file = "Case2PedictionsSchwan Attrition.csv")
 ```
 
 
-I have also provided an additional data set of 300 observations that do not have the Monthly Incomes.  This data is in the file “CaseStudy2CompSet No Salary.csv”.  I have the real monthly incomes (salaries) and will thus assess the RMSE regression model. 10% of your grade will depend on the RMSE (Root Mean square error) of your final model.  You must provide a model that will attain a RMSE < $3000 for the training and the validation set.  Therefore, you must provide the predicted salaries (ordered by ID) in a csv file.  Please include this in your GitHub repository and call the file “Case2PredictionsXXXX Salary.csv”.  XXXX is your last name.  (Example: Case2PredictionsSadler Salary.csv” would be mine.)  
+I will take the datafile “CaseStudy2CompSet No Salary.csv” which is a set of 300 observations predicted salaries (ordered by ID) in a csv file.  I will call the file “Case2PredictionsSchwan Salary.csv”.  
 
-xample:
 
-```{r pressure, echo=FALSE}
+
+```{r Salary, echo=FALSE}
+#Do correlation focusing on the monthly income
+corrplot::corrplot.mixed(corr=cor(employee_df[,c(19, 1,24:25,27:35 )],use="complete.obs"),upper="pie",tl.pos="lt")
+
+#Fit all independent variables to find out which ones are significant
+Model1 <-MonthlyIncome ~ Age+BusinessTravel+DailyRate+Department+DistanceFromHome+Education+EducationField+EnvironmentSatisfaction+Gender+JobLevel+JobRole+JobSatisfaction+MaritalStatus+NumCompaniesWorked+OverTime+PercentSalaryHike+JobInvolvement+PerformanceRating+EnvironmentSatisfaction+TotalWorkingYears+TrainingTimesLastYear+WorkLifeBalance+YearsAtCompany+YearsInCurrentRole+YearsSinceLastPromotion+YearsWithCurrManager
+
+fit1 <- lm(Model1, data = employee_df)
+plot(leap1, scale="adjr2")
+summary(fit1)
+
+#Plot the significant independent variables
+leap1 <- regsubsets(Model1, data = employee_df, nbest=1)
+plot(leap1, scale="adjr2")
+
+#Redue model with only significant variables
+Model2 <-MonthlyIncome ~ JobLevel+JobRole+TotalWorkingYears
+fit2 <- lm(Model2, data = employee_df)
+summary(fit2)
+AIC(fit2)
+BIC(fit2)
+leap1 <- regsubsets(Model2, data = employee_df, nbest=1)
+plot(leap1, scale="adjr2")
+summary(fit2)
+
+
+# JobLevel JobRole TotalWorkingYears will be used for the model
+
+control <- trainControl(method="cv", number=10)
+metric <- "Accuracy"
+
+#Trim down model to attributing features
+varsToKeep <- c('MonthlyIncome','JobLevel', 'JobRole', 'TotalWorkingYears', 'EmployeeNumber')
+
+DstTrainTest <- retention_set[,varsToKeep]
+idxSplit <- createDataPartition(employee_df$MonthlyIncome, p = 0.75, list=FALSE)
+DstTrainModel <- DstTrainTest[idxSplit,]
+DstTestModel <- DstTrainTest[-idxSplit,]
+
+trainX <- DstTrainModel[,names(DstTrainModel) != "MonthlyIncome"]
+preProcValues <- preProcess(x = trainX,method = c("center", "scale"))
+preProcValues
+
+
+# kNN
+set.seed(7)
+fit.knn <- train(MonthlyIncome ~ ., data=DstTrainModel, method="knn", 
+                  trControl=control, preProcess = c("center","scale"), tuneLength = 5)
+
+# logistic regression
+set.seed(7)
+
+fit.glm <- train(MonthlyIncome ~ ., data=DstTrainModel, method="glm",  trControl=control)
 
 ```
 
-# #Change all character type to vectors
-# cols <- c("Attrition", "BusinessTravel", "Department", "EducationField", "Gender", "JobRole", "MaritalStatus")
-# retention_set$Attrition %<>% factor
-# retention_set$BusinessTravel %<>% factor
-# retention_set$EducationField %<>% factor
-# retention_set$Gender %<>% factor
-# retention_set$JobRole %<>% factor
-# retention_set$MaritalStatus %<>% factor
-# retention_set$Department %<>% factor
-# retention_set$Over18 %<>% factor
-# retention_set$OverTime %<>% factor
-# temp_df_num = retention_set
-# must_convert<-sapply(temp_df_num,is.factor)       # logical vector telling if a variable needs to be displayed as numeric
-# M2<-sapply(temp_df_num[,must_convert],unclass)    # data.frame of all categorical variables now displayed as numeric
-# out<-cbind(temp_df_num[,!must_convert],M2)        # complete data.frame with all variables put together
-# temp_df_num = out
-# str(retention_set)
+#Model accuracy test
+```{r model accuracy for salary}
+# summarize accuracy of models
+results <- resamples(list(
+  glm=fit.glm, 
+  knn=fit.knn ))
+summary(results)
+
+# compare accuracy of models
+dotplot(results)
+```
+#Model testing against new test set
+
+```{r model testing of salary precision}
+#Salary predictions
+
+
+varsToKeep <- c('JobLevel', 'JobRole', 'TotalWorkingYears', 'EmployeeNumber')
+
+DstTrainTest <- comp_set_nosalary[,varsToKeep]
+
+
+
+DstTestModelClean <- DstTrainTest
+DstTestModelClean$MonthlyIncome <- NA
+predictedval <- predict(fit.knn, newdata=DstTestModelClean)
+comp_set_nosalary$MonthlyIncome = predictedval
+
+write.csv(comp_set, file = "Case2PedictionsSchwan Salary.csv")
+
+
+
+
+
+
+```
